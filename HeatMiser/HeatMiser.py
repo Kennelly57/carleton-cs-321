@@ -189,10 +189,11 @@ def main():
     #
     # print(numpy.mean(trial_list))
 
-    with open('HeatMiserHeuristic.txt') as f:
-        lines = f.readlines()
+    heuristics_file = open('HeatMiserHeuristic.txt', 'r')
+    heuristicList = []
+    for line in heuristics_file:
+        currentSplit = line.split()
+        heuristicList.append(currentSplit)
 
-    lines = [line.rstrip('\t') for line in open('HeatMiserHeuristic.txt')]
-    print(lines)
-
+    print(heuristicList[1])
 main()
