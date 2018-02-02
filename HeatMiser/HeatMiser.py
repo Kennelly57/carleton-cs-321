@@ -16,36 +16,36 @@ class Room:
         self.edges = []
         self.edge_weights = []
 
-    def get_temp(self):
+    def getTemp(self):
         return self.temperature
 
-    def get_humidity(self):
+    def getHumidity(self):
         return self.humidity
 
-    def set_temp(self,temp):
+    def setTemp(self,temp):
         self.temperature = temp
 
-    def set_humidity(self,hum):
+    def setHumidity(self,hum):
         self.humidity = hum
 
-    def add_edge(self, room, edge_weight):
+    def addEdge(self, room, edge_weight):
         self.edges.append(room)
         self.edge_weights.append(edge_weight)
 
-    def get_edges(self):
+    def getEdges(self):
         return self.edges
 
-    def get_edge_weights(self):
+    def getEdgeWeights(self):
         return self.edge_weights
 
-    def set_name(self, name):
+    def setName(self, name):
         self.name = name
 
-    def get_name(self):
+    def getName(self):
         return self.name
 
 
-def get_temp_mean(room_list):
+def getTempMean(room_list):
     temp_mean = 0
 
     for room in room_list:
@@ -55,7 +55,7 @@ def get_temp_mean(room_list):
     return temp_mean
 
 
-def get_humidity_mean(room_list):
+def getHumidityMean(room_list):
     humidity_mean = 0
 
     for room in room_list:
@@ -65,8 +65,8 @@ def get_humidity_mean(room_list):
     return humidity_mean
 
 
-def get_temp_std(room_list):
-    temp_mean = get_temp_mean(room_list)
+def getTempSTD(room_list):
+    temp_mean = getTempMean(room_list)
 
     running_sum = 0
 
@@ -79,8 +79,8 @@ def get_temp_std(room_list):
     return running_sum
 
 
-def get_humidity_std(room_list):
-    humidity_mean = get_humidity_mean(room_list)
+def getHumiditySTD(room_list):
+    humidity_mean = getHumidityMean(room_list)
 
     running_sum = 0
 
@@ -92,7 +92,7 @@ def get_humidity_std(room_list):
 
     return running_sum
 
-def initialize_office():
+def initializeOffice():
     G = nx.Graph()
     G.add_edge(0, 1, weight=13)
     G.add_edge(0, 2, weight=15)
@@ -113,32 +113,33 @@ def initialize_office():
 
 def initialize_rooms():
     rooms = []
-    for i in range(12):
+    rooms.append(Room(0))
+    for i in range(1, 13):
         office = Room(i)
         rooms.append(office)
 
-    rooms[0].add_edge(rooms[1], 13)
-    rooms[0].add_edge(rooms[2], 15)
-    rooms[2].add_edge(rooms[6], 23)
-    rooms[1].add_edge(rooms[3], 7)
-    rooms[5].add_edge(rooms[6], 9)
-    rooms[3].add_edge(rooms[5], 10)
-    rooms[3].add_edge(rooms[4], 6)
-    rooms[5].add_edge(rooms[8], 16)
-    rooms[7].add_edge(rooms[8], 5)
-    rooms[6].add_edge(rooms[9], 17)
-    rooms[8].add_edge(rooms[9], 8)
-    rooms[9].add_edge(rooms[10], 2)
-    rooms[10].add_edge(rooms[11], 19)
+    rooms[1].addEdge(rooms[2], 13)
+    rooms[1].addEdge(rooms[3], 15)
+    rooms[3].addEdge(rooms[7], 23)
+    rooms[2].addEdge(rooms[4], 7)
+    rooms[6].addEdge(rooms[7], 9)
+    rooms[4].addEdge(rooms[6], 10)
+    rooms[4].addEdge(rooms[5], 6)
+    rooms[6].addEdge(rooms[9], 16)
+    rooms[8].addEdge(rooms[9], 5)
+    rooms[7].addEdge(rooms[10], 17)
+    rooms[9].addEdge(rooms[10], 8)
+    rooms[10].addEdge(rooms[11], 2)
+    rooms[11].addEdge(rooms[12], 19)
 
     return rooms
 
 
-def depth_first_search(Graph, start):
+def depthFirstSearch(Graph, start):
     return list(nx.dfs_preorder_nodes(Graph, source=start))
 
 
-def find_outlier(room_list):
+def findOutlier(room_list):
     max_temp_diff = 0
     max_humidity_diff = 0
     max_combined_diff = 0
@@ -163,10 +164,10 @@ def find_outlier(room_list):
             max_combined_diff = abs(room_list[room_index].get_temp() - 72) + abs(room_list[room_index].get_humidity() - 47)
             combined_ind = room_index
 
-    if 47 < get_humidity_mean(room_list) < 48 and get_humidity_std(room_list) < 1.75:
+    if 47 < getHumidityMean(room_list) < 48 and getHumiditySTD(room_list) < 1.75:
         return temp_ind
 
-    if 72 < get_temp_mean(room_list) < 73 and get_temp_std(room_list) < 1.5:
+    if 72 < getTempMean(room_list) < 73 and getTempSTD(room_list) < 1.5:
         return humidity_ind
 
     return combined_ind
@@ -195,30 +196,48 @@ def find_outlier(room_list):
 #
 #     return trials
 
-def a_star_search(room_list_graph, starting_room, goal_room):
+def a_star_search(room_list_graph, starting_room, goal_room, straightLineDistance):
     edge_list = room_list_graph[starting_room].get_edges()
     edge_weights = room_list_graph[starting_room].get_edge_weights()
-    
+    current_room = starting_room
 
-def heat_miser_part2(graph, room_list):
+    while current_room is not goal_room:
+        cumulativeDistance = 0
+        lowestEdgeWeight = 10000
+        lowestEdgeWeightIndex = "NAN"
+        for i in range(edge_weights.length()):
+            if edge_weights[i] < lowestEdgeWeight:
+                lowestEdgeWeight = edge_weights[i]
+                lowestEdgeWeightIndex = i
+
+
+def findStraightLineDistance(startingRoom, goalRoom, heuristics):
+    baseRange = startingRoom.getName()*11
+    for i in range(baseRange - 10, baseRange):
+        if int(heuristics[i][1]) == goalRoom.getName():
+            return heuristics[i][2]
+    return -1
+
+def heat_miser_part2(room_list, heuristics):
     starting_room = random.randint(0, 11)
 
-    meanTemp = get_temp_mean(room_list)
-    stdTemp = get_temp_std(room_list)
-    meanHum = get_humidity_mean(room_list)
-    stdHum = get_humidity_std(room_list)
+    meanTemp = getTempMean(room_list)
+    stdTemp = getTempSTD(room_list)
+    meanHum = getHumidityMean(room_list)
+    stdHum = getHumiditySTD(room_list)
 
     trials = 0
     while (72 > meanTemp) or (meanTemp > 73) or (stdTemp > 1.5) or (47 > meanHum) or (meanHum > 47.99) or (stdHum > 1.75):
-        goal_room = find_outlier(room_list)
-        cheapest_path = a_star_search(room_list, starting_room, goal_room)
+        goal_room = findOutlier(room_list)
+        straightLineDistance = findStraightLineDistance(starting_room, goal_room, heuristics)
+        cheapest_path = a_star_search(room_list, starting_room, goal_room, straightLineDistance)
         room_list[starting_room].set_temp(72.5)
         room_list[starting_room].set_humidity(47.5)
 
-        meanTemp = get_temp_mean(room_list)
-        stdTemp = get_temp_std(room_list)
-        meanHum = get_humidity_mean(room_list)
-        stdHum = get_humidity_std(room_list)
+        meanTemp = getTempMean(room_list)
+        stdTemp = getTempSTD(room_list)
+        meanHum = getHumidityMean(room_list)
+        stdHum = getHumiditySTD(room_list)
 
         # Need to add the length of the path, not 1
         trials += 1
@@ -254,8 +273,9 @@ def main():
     for line in heuristics_file:
         currentSplit = line.split()
         heuristicList.append(currentSplit)
-
-    # print(room_list[0].get_edges()[0].get_name())
-    # print(room_list[0].get_edges()[1].get_name())
+    # print(heat_miser_part2(room_list,heuristicList))
+    print(findStraightLineDistance(room_list[2], room_list[4], heuristicList))
+    # print(room_list[0].get_edges()[0].getName())
+    # print(room_list[0].get_edges()[1].getName())
     # print(room_list[0].get_edge_weights())
 main()
