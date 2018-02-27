@@ -9,41 +9,39 @@ from nltk.corpus import brown, movie_reviews, treebank
 import math
 import matplotlib.pyplot as plt
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Dropout, Activation
+import copy
+import numpy as np
 
 def cleanData(data):
+    data = data[~(data == 0).any(axis=1)]
     text_data = []
 
     for key, value in data.iterrows():
         text_data.append(value[3].split())
 
-    print(text_data)
+
     for sentence_index in range(len(text_data)):
         for word_index in range(len(text_data[sentence_index])):
             if '\\n' in text_data[sentence_index][word_index]:
                 text_data[sentence_index][word_index] = text_data[sentence_index][word_index][:-2]
+            if "IG:" in text_data[sentence_index][word_index]:
+                text_data[sentence_index] = text_data[sentence_index][:word_index]
+                break
+            if word_index == len(text_data[sentence_index]) - 1:
+                if "@" in text_data[sentence_index][word_index]:
+                    text_data[sentence_index].remove(text_data[sentence_index][word_index])
 
     for sentence_index in range(len(text_data)):
         text_data[sentence_index] = " ".join(text_data[sentence_index])
-        print(text_data[sentence_index])
+
+    return [text_data,data]
 
 
-def getSent(data):
-    text_data = []
+def getSent(text_data):
     sentiment_data = []
-    word2vec_vals = []
 
-    for key, value in data.iterrows():
-        text_data.append(value[2].split())
 
-    for sentence_index in range(len(text_data)):
-        for word_index in range(len(text_data[sentence_index])):
-            if '\\n' in text_data[sentence_index][word_index]:
-                text_data[sentence_index][word_index] = text_data[sentence_index][word_index][:-2]
-
-    for sentence_index in range(len(text_data)):
-        text_data[sentence_index] = " ".join(text_data[sentence_index])
-        print(text_data[sentence_index])
 
     sid = SentimentIntensityAnalyzer()
     for sentence in text_data:
@@ -58,7 +56,6 @@ def getSent(data):
     #compound negative neutral positive
 
 def normalizeScores(data):
-    data = data[~(data == 0).any(axis=1)]
     min_val = 0
     for key, value in data.iterrows():
         if value[6] < min_val:
@@ -126,6 +123,37 @@ def normalizeScores(data):
     return normalized_scores
 
 
+def qual2quant(normalized):
+    new_scores = []
+    sorted_norm = copy.copy(normalized)
+    sorted_norm.sort()
+    max_length = len(sorted_norm)
+    bin_size = int(max_length/5)
+    first_20 = sorted_norm[bin_size]
+    second_20 = sorted_norm[bin_size*2]
+    third_20 = sorted_norm[bin_size*3]
+    fourth_20 = sorted_norm[bin_size*4]
+
+
+
+    for score in normalized:
+        if score < first_20:
+            new_scores.append(0)
+        elif first_20 <= score < second_20:
+            new_scores.append(1)
+        elif second_20 <= score < third_20:
+            new_scores.append(2)
+        elif third_20 <= score < fourth_20:
+            new_scores.append(3)
+        elif fourth_20 <= score:
+            new_scores.append(4)
+
+    return new_scores
+
+
+
+
+
 
 
 
@@ -138,14 +166,30 @@ def main():
 
     #data = pd.read_csv('Bern.csv', encoding="ISO-8859-1")
     data = pd.read_csv('hillary memes.csv', encoding="ISO-8859-1")
-    # normalized = normalizeScores(data)
-    cleanData(data)
-    # model = Sequential()
-    # model.add(Dense(12, input_dim=8, activation='relu'))
-    # model.add(Dense(8, activation='relu'))
-    # model.add(Dense(1, activation='sigmoid'))
-    # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    # model.fit(X, normalized, epochs=150, batch_size=10)
+
+    cleaned_text = cleanData(data)[0]
+    cleaned_data = cleanData(data)[1]
+
+    normalized = normalizeScores(cleaned_data)
+    normalized_bin = qual2quant(normalized)
+
+    sent_data = getSent(cleaned_text)
+
+
+
+
+
+    model = Sequential()
+    model.add(Dense(12, input_dim=4, activation='softplus'))
+    model.add(Dropout(0.5))
+    model.add(Dense(12, activation='softplus'))
+    model.add(Dropout(0.5))
+    model.add(Dense(12, activation='softplus'))
+    model.add(Dense(1, activation='hard_sigmoid'))
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.fit(np.array(sent_data), np.array(normalized_bin), epochs=30, batch_size=20)
+    scores = model.evaluate(np.array(sent_data), np.array(normalized_bin))
+    print("\n%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
 
 
 
