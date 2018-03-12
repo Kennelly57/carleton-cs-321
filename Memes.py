@@ -27,22 +27,19 @@ def cleanData(data):
         for word_index in range(len(text_data[sentence_index])):
             if '\\n' in text_data[sentence_index][word_index]:
                 text_data[sentence_index][word_index] = text_data[sentence_index][word_index][:-2]
-            # if "IG:" in text_data[sentence_index][word_index]:
-            #     text_data[sentence_index] = text_data[sentence_index][:word_index]
-            #     break
-            # if "@" in text_data[sentence_index][word_index]:
-            #     text_data[sentence_index].remove(text_data[sentence_index][word_index])
-
     for sentence_index in range(len(text_data)):
         text_data[sentence_index] = " ".join(text_data[sentence_index])
 
 
     inds_to_remove = []
     for sentence_ind in range(len(text_data)):
-        matchObj1 = re.search('.*([0-9]|[0-9][0-9]):[0-9][0-9].*',text_data[sentence_ind])
-        matchObj2 = re.search('[0-9]{5,}.*', text_data[sentence_ind])
-        matchObj3 = re.search('[0-9]+/[0-9]+/[0-9]+.*', text_data[sentence_ind])
-        if matchObj1 or matchObj2 or matchObj3:
+        matchObj1 = re.search('([0-9]|[0-9][0-9]):[0-9][0-9]',text_data[sentence_ind])
+        matchObj2 = re.search('[0-9]{5,}', text_data[sentence_ind])
+        matchObj3 = re.search('[0-9]+/[0-9]+/[0-9]+', text_data[sentence_ind])
+        matchObj4 = re.search('www\..*\.com', text_data[sentence_ind])
+        matchObj5 = re.search('@', text_data[sentence_ind])
+        matchObj6 = re.search('IG:', text_data[sentence_ind])
+        if matchObj1 or matchObj2 or matchObj3 or matchObj4 or matchObj5 or matchObj6:
             inds_to_remove.append(sentence_ind)
 
     inds_to_remove.reverse()
@@ -51,18 +48,11 @@ def cleanData(data):
         del text_data[ind]
         data.drop(data.index[ind],inplace=True)
 
-
-
-
-
     return [text_data,data]
 
 
 def getSent(text_data):
     sentiment_data = []
-
-
-
     sid = SentimentIntensityAnalyzer()
     for sentence in text_data:
         temp_sentiment_data = []
