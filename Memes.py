@@ -1,11 +1,5 @@
 import pandas as pd
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from nltk import tokenize
-import io
-import urllib
-#import cv2
-#from gensim.models import Word2Vec
-from nltk.corpus import brown, movie_reviews, treebank
 import math
 import matplotlib.pyplot as plt
 from keras.models import Sequential
@@ -14,6 +8,7 @@ import copy
 import numpy as np
 import re
 from sklearn.cluster import KMeans
+from gensim.models import word2vec
 
 def cleanData(data):
     data = data[~(data == 0).any(axis=1)]
@@ -46,7 +41,7 @@ def cleanData(data):
 
     for ind in inds_to_remove:
         del text_data[ind]
-        data.drop(data.index[ind],inplace=True)
+        data.drop(data.index[ind], inplace=True)
 
     return [text_data,data]
 
@@ -215,13 +210,75 @@ def cluster(sent_data, normalized):
 
 
 
+def cleanDataForVec(precleanedData):
+    superList = []
+    for entry in precleanedData:
+        subList = entry.split()
+        for item in subList:
+            item = item.lower()
+            superList.append(item)
+    return superList
 
+class MySentences(object):
+    def __init__(self, data):
+        self.data = data
 
+    def __iter__(self):
+            for line in self.data:
+                yield line.split()
+
+def cleanDataForNet(precleanedData, vecModel):
+    superList = []
+    for sentence in precleanedData:
+        outerTempList = []
+        for word in sentence:
+            mostSimilar = []
+            try:
+                mostSimilar = vecModel.most_similar(positive=[word])
+            except:
+                continue
+            if len(mostSimilar) == 0:
+                continue
+            for item in mostSimilar[0:5]:
+                outerTempList.append(vecModel.wv.vocab[item[0]].index)
+        moveToSuperList = []
+        duplicate = set()
+        uniqueItems = []
+        for item in outerTempList:
+            if item not in duplicate:
+                uniqueItems.append(item)
+                duplicate.add(item)
+        for i in range(5):
+            if len(uniqueItems) != 0:
+                moveToSuperList.append(min(uniqueItems))
+                uniqueItems.remove(min(uniqueItems))
+        superList.append(moveToSuperList)
+    return superList
+
+def addVecData(combinedData, vecData):
+    for i in range(len(combinedData)):
+        for item in vecData[i]:
+            combinedData[i].append(item)
+        while len(combinedData[i]) != 10:
+            combinedData[i].append(0)
+    return combinedData
 
 def main():
 
-    data = pd.read_csv('trump memes.csv', encoding="ISO-8859-1")
+    data = pd.read_csv('Donald.csv', encoding="ISO-8859-1")
     [cleaned_text,cleaned_data] = cleanData(data)
+
+    squeakyCleanData = cleanDataForVec(cleaned_text)
+    sentences = MySentences(squeakyCleanData)
+    vectorDimensions = 25
+    vecModel = word2vec.Word2Vec(sentences, iter=10, min_count=10, size=vectorDimensions, workers=4)
+    embedding_matrix = np.zeros((len(vecModel.wv.vocab), vectorDimensions))
+    for i in range(len(vecModel.wv.vocab)):
+        embedding_vector = vecModel.wv[vecModel.wv.index2word[i]]
+        if embedding_vector is not None:
+            embedding_matrix[i] = embedding_vector
+
+    vectorData = cleanDataForNet(cleaned_text, vecModel)
 
     getTime(cleaned_data)
     normalized = normalizeScores(cleaned_data)
@@ -230,13 +287,14 @@ def main():
     sent_data = getSent(cleaned_text)
     dates = getTime(cleaned_data)
 
-    #cluster(sent_data,normalized)
+    cluster(sent_data,normalized)
 
 
     combined_data = dataCombiner(sent_data,dates)
+    totalData = addVecData(combined_data, vectorData)
 
     model = Sequential()
-    model.add(Dense(12, input_dim=5, activation='softplus'))
+    model.add(Dense(12, input_dim=10, activation='softplus'))
     model.add(Dropout(0.5))
     model.add(Dense(12, activation='softplus'))
     model.add(Dropout(0.5))
@@ -244,11 +302,7 @@ def main():
     model.add(Dense(1, activation='hard_sigmoid'))
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.fit(np.array(sent_data), np.array(normalized_bin), epochs=30, batch_size=20)
-    scores = model.evaluate(np.array(combined_data), np.array(normalized_bin))
+    scores = model.evaluate(np.array(totalData), np.array(normalized_bin))
     print("\n%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
-
-
-
-
 
 main()
